@@ -20,15 +20,17 @@
             border: 2px solid white;
             image-rendering: pixelated;
             cursor: crosshair;
+            display: none;
         }
 
-        #story-overlay {
+        /* Overlays (Intro, Fin, Crédits) */
+        .overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: black;
+            background: rgba(0, 0, 0, 0.9);
             display: none;
             flex-direction: column;
             justify-content: center;
@@ -36,7 +38,63 @@
             text-align: center;
             padding: 20px;
             box-sizing: border-box;
-            z-index: 10;
+            z-index: 30;
+        }
+
+        #story-text {
+            line-height: 1.6;
+            max-width: 600px;
+            white-space: pre-line;
+            font-size: 1.2em;
+        }
+
+        /* Menu principal */
+        #main-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://i.imgur.com/nqK5nxv.png') no-repeat center center / cover;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 20;
+            padding: 50px;
+            box-sizing: border-box;
+        }
+
+        #game-title {
+            font-size: 3.5em;
+            font-weight: bold;
+            text-shadow: 3px 3px 10px rgba(0, 0, 0, 1);
+            margin-top: 20px;
+        }
+
+        .menu-footer {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            gap: 20px;
+        }
+
+        /* Boutons */
+        .btn {
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: 2px solid white;
+            padding: 15px 30px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2em;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: white;
+            color: black;
+            transform: scale(1.1);
         }
 
         .fade-in {
@@ -47,12 +105,40 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+
+        .credits-list {
+            list-style: none;
+            padding: 0;
+            font-size: 1.4em;
+            line-height: 1.8;
+            margin-bottom: 30px;
+        }
     </style>
 </head>
 <body>
 
-<div id="story-overlay">
+<div id="main-menu">
+    <h1 id="game-title" class="fade-in">THE CAR CAN CHANGE YOUR LIFE</h1>
+    <div class="menu-footer">
+        <button id="credits-btn" class="btn">CREDITS</button>
+        <button id="play-button" class="btn">PLAY</button>
+    </div>
+</div>
+
+<div id="credits-overlay" class="overlay">
+    <h1>CREDITS</h1>
+    <ul class="credits-list">
+        <li>GUERIN Alexis</li>
+        <li>JEAND'HEUR Liam</li>
+        <li>BEUGRE - - MARBOUA Hinno-Jhunior</li>
+        <li>GALLOIS Nolan</li>
+    </ul>
+    <button id="close-credits" class="btn">RETOUR</button>
+</div>
+
+<div id="story-overlay" class="overlay">
     <p id="story-text"></p>
+    <button id="start-game-button" class="btn">COMMENCER L'AVENTURE</button>
 </div>
 
 <canvas id="game" width="800" height="450"></canvas>
@@ -60,7 +146,9 @@
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-const overlay = document.getElementById("story-overlay");
+const mainMenu = document.getElementById("main-menu");
+const storyOverlay = document.getElementById("story-overlay");
+const creditsOverlay = document.getElementById("credits-overlay");
 const storyText = document.getElementById("story-text");
 
 // === CONFIGURATION ===
@@ -69,63 +157,72 @@ const limiteBas = 370;
 let cameraX = 0;
 const DISTANCE_ARBRE = 1000; 
 let gameEnded = false;
+let introActive = false;
 
 // === IMAGES ===
-const background = new Image();
-background.src = "https://i.imgur.com/1iPHzZk.png";
-const playerIdle = new Image();
-playerIdle.src = "https://i.imgur.com/SvsfsiA.png";
-const playerWalk = new Image();
-playerWalk.src = "https://i.imgur.com/0eb0KYR.png";
-const carImg = new Image();
-carImg.src = "https://i.imgur.com/y7EmwQ0.png";
-const propImg = new Image();
-propImg.src = "https://i.imgur.com/V30Jbyq.png";
-const bushImg = new Image();
-bushImg.src = "https://i.imgur.com/krm21gr.png";
+const background = new Image(); background.src = "https://i.imgur.com/1iPHzZk.png";
+const playerIdle = new Image(); playerIdle.src = "https://i.imgur.com/SvsfsiA.png";
+const playerWalk = new Image(); playerWalk.src = "https://i.imgur.com/0eb0KYR.png";
+const carImg = new Image(); carImg.src = "https://i.imgur.com/y7EmwQ0.png";
+const propImg = new Image(); propImg.src = "https://i.imgur.com/V30Jbyq.png";
+const bushImg = new Image(); bushImg.src = "https://i.imgur.com/krm21gr.png";
 
-// === VARIABLES D'ÉTAT ===
-let player = {
-    x: 150,
-    y: 370,
-    targetX: 150,
-    targetY: 370,
-    speed: 2.5,
-    moving: false,
-    inCar: false
-};
+let player = { x: 150, y: 370, targetX: 150, targetY: 370, speed: 2.5, moving: false, inCar: false };
+let car = { x: 500, y: 260, width: 124, height: 134, speed: 6 };
 
-let car = {
-    x: 500,
-    y: 260,
-    width: 124,
-    height: 134,
-    speed: 6
-};
+// --- GESTION DES MENUS ---
 
-// === GESTION DE L'ÉVÉNEMENT 1000M ===
+document.getElementById("play-button").addEventListener("click", () => {
+    mainMenu.style.display = "none";
+    storyOverlay.style.display = "flex";
+    introActive = true;
+    storyText.innerText = `Your father organized a treasure hunt
+for you with a big surprise. For this, 
+he gave you a simple rule: you have
+a paper in your mailbox, you read it
+
+once 1 mile from your starting
+point. You will soon know where you
+have to start because a red car
+is waiting for you.`;
+});
+
+document.getElementById("credits-btn").addEventListener("click", () => {
+    creditsOverlay.style.display = "flex";
+});
+
+document.getElementById("close-credits").addEventListener("click", () => {
+    creditsOverlay.style.display = "none";
+});
+
+document.getElementById("start-game-button").addEventListener("click", () => {
+    storyOverlay.style.display = "none";
+    canvas.style.display = "block";
+    introActive = false;
+    gameLoop();
+});
+
+// === LOGIQUE DU JEU ===
+
 function triggerEnding() {
     gameEnded = true;
-    overlay.style.display = "flex";
-    
-    // Premier texte
-    storyText.innerText = "You open the glove box and find a paper and you decide to read it.......";
-    storyText.classList.add("fade-in");
+    canvas.style.display = "none";
+    storyOverlay.style.display = "flex";
+    document.getElementById("start-game-button").style.display = "none";
 
-    // Après 5 secondes, afficher l'énigme
+    storyText.innerText = "You open the glove box and find a paper and you decide to read it.......";
+    
     setTimeout(() => {
         storyText.style.opacity = 0;
         setTimeout(() => {
             storyText.innerText = "Look like water attraction, you can see trees on this place, this place is more bigger than Boca Grande.\n\nThere is a beautiful view when you are in the water attraction. You can see animals like bird and fishes. On the water they are waterlillies.\n\nCan you find me? Where I am ?";
             storyText.style.opacity = 1;
-            storyText.classList.add("fade-in");
         }, 1000);
     }, 5000);
 }
 
-// === CLIC SOURIS ===
 canvas.addEventListener("click", (e) => {
-    if (gameEnded) return;
+    if (gameEnded || introActive) return;
     const rect = canvas.getBoundingClientRect();
     const clickX = e.clientX - rect.left + cameraX;
     let clickY = e.clientY - rect.top;
@@ -142,20 +239,17 @@ canvas.addEventListener("click", (e) => {
             player.moving = true;
         } else {
             player.inCar = false;
-            player.x = car.x - 40;
-            player.y = limiteBas;
-            player.targetX = player.x;
-            player.targetY = player.y;
+            player.x = car.x - 40; player.y = limiteBas;
+            player.targetX = player.x; player.targetY = player.y;
         }
     } else {
-        player.targetX = clickX;
-        player.targetY = clickY;
+        player.targetX = clickX; player.targetY = clickY;
         player.moving = true;
     }
 });
 
 function update() {
-    if (gameEnded) return;
+    if (gameEnded || introActive) return;
 
     if (!player.inCar) {
         const dx = player.targetX - player.x;
@@ -186,14 +280,13 @@ function update() {
     let targetCamX = player.x - 400;
     cameraX += (targetCamX - cameraX) * 0.1;
 
-    // VERIFICATION DE LA DISTANCE (1000m)
-    // On divise x par 20 pour correspondre à l'affichage de l'UI
     if (player.x / 20 >= 1000) {
         triggerEnding();
     }
 }
 
 function draw() {
+    if (introActive || gameEnded) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.translate(-cameraX, 0);
@@ -222,21 +315,23 @@ function draw() {
 
     ctx.restore();
 
-    // UI
+    // UI - Miles
     ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
     ctx.fillRect(10, 10, 200, 30);
     ctx.fillStyle = "white";
     ctx.font = "bold 14px Arial";
-    ctx.fillText(`Distance : ${Math.floor(player.x / 20)} m`, 20, 30);
+    ctx.fillText(`Distance : ${Math.floor(player.x / 20)} miles`, 20, 30);
 }
 
 function gameLoop() {
-    update();
-    draw();
+    if (!introActive && !gameEnded) {
+        update();
+        draw();
+    }
     requestAnimationFrame(gameLoop);
 }
 
-background.onload = () => gameLoop();
+background.onload = () => requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
