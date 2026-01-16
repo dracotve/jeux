@@ -39,6 +39,18 @@
             z-index: 30;
         }
 
+        #loading-overlay {
+            background: url('https://i.imgur.com/5Xn347S.png') no-repeat center center / cover;
+            z-index: 100;
+        }
+
+        .loader-text {
+            font-size: 2em;
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border: 2px solid white;
+        }
+
         #story-text {
             line-height: 1.6;
             max-width: 700px;
@@ -100,6 +112,10 @@
     </div>
 </div>
 
+<div id="loading-overlay" class="overlay">
+    <div class="loader-text">LOADING IN PROGRESS...</div>
+</div>
+
 <div id="credits-overlay" class="overlay">
     <h1>CREDITS</h1>
     <p>GUERIN Alexis<br>JEAND'HEUR Liam<br>BEUGRE - - MARBOUA Hinno-Jhunior<br>GALLOIS Nolan</p>
@@ -123,6 +139,8 @@
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const mainMenu = document.getElementById("main-menu");
+const loadingOverlay = document.getElementById("loading-overlay");
 const storyOverlay = document.getElementById("story-overlay");
 const storyText = document.getElementById("story-text");
 const choicesContainer = document.getElementById("choices-container");
@@ -146,17 +164,23 @@ let selectedCity = "";
 
 // --- MENU LOGIC ---
 document.getElementById("play-button").onclick = () => {
-    document.getElementById("main-menu").style.display = "none";
-    storyOverlay.style.display = "flex";
-    storyText.innerText = `Your father organized a treasure hunt
+    mainMenu.style.display = "none";
+    loadingOverlay.style.display = "flex";
+    
+    // 5 second loading
+    setTimeout(() => {
+        loadingOverlay.style.display = "none";
+        storyOverlay.style.display = "flex";
+        storyText.innerText = `Your father organized a treasure hunt
 for you with a big surprise. For this, 
 he gave you a simple rule: you have
 a paper in your mailbox, you read it
 
-once 1 mile from your starting
+once 1000 mile from your starting
 point. You will soon know where you
 have to start because a red car
 is waiting for you.`;
+    }, 5000);
 };
 
 document.getElementById("start-game-button").onclick = () => {
