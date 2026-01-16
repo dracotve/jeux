@@ -58,6 +58,13 @@
             font-size: 1.2em;
         }
 
+        #game-over-text {
+            font-size: 4em;
+            color: red;
+            font-weight: bold;
+            display: none;
+        }
+
         #main-menu {
             position: absolute;
             top: 0;
@@ -132,6 +139,11 @@
     </div>
 </div>
 
+<div id="game-over-overlay" class="overlay" style="background: black;">
+    <p id="wrong-road-msg" style="font-size: 1.5em;"></p>
+    <h2 id="game-over-text">GAME OVER</h2>
+</div>
+
 <button id="cheat-btn" class="btn">CHEAT: +1000 MILES</button>
 
 <canvas id="game" width="800" height="450"></canvas>
@@ -145,9 +157,14 @@ const storyOverlay = document.getElementById("story-overlay");
 const storyText = document.getElementById("story-text");
 const choicesContainer = document.getElementById("choices-container");
 const cheatBtn = document.getElementById("cheat-btn");
+const gameOverOverlay = document.getElementById("game-over-overlay");
+const gameOverText = document.getElementById("game-over-text");
+const wrongRoadMsg = document.getElementById("wrong-road-msg");
 
 // === ASSETS ===
 const background = new Image(); background.src = "https://i.imgur.com/1iPHzZk.png";
+const evergladesBg = "https://i.imgur.com/lmv1lGB.png"; 
+const kennedyBg = "https://i.imgur.com/jXkox1h.png"; 
 const playerIdle = new Image(); playerIdle.src = "https://i.imgur.com/SvsfsiA.png";
 const playerWalk = new Image(); playerWalk.src = "https://i.imgur.com/0eb0KYR.png";
 const carImg = new Image(); carImg.src = "https://i.imgur.com/y7EmwQ0.png";
@@ -162,12 +179,10 @@ let gameEnded = false;
 let showHighway = false;
 let selectedCity = "";
 
-// --- MENU LOGIC ---
+// --- LOGIQUE BOUTONS ---
 document.getElementById("play-button").onclick = () => {
     mainMenu.style.display = "none";
     loadingOverlay.style.display = "flex";
-    
-    // 5 second loading
     setTimeout(() => {
         loadingOverlay.style.display = "none";
         storyOverlay.style.display = "flex";
@@ -190,6 +205,7 @@ document.getElementById("start-game-button").onclick = () => {
     gameLoop();
 };
 
+// BOUTON TRICHE
 cheatBtn.onclick = () => { player.x = 20005; };
 
 function triggerEnding() {
@@ -198,7 +214,6 @@ function triggerEnding() {
     storyOverlay.style.display = "flex";
     document.getElementById("start-game-button").style.display = "none";
     storyText.innerText = "You open the glove box and find a paper and you decide to read it.......";
-    
     setTimeout(() => {
         storyText.innerText = `Look like water attraction, you can see trees on this place, this place is more bigger than Boca Grande.
 
@@ -214,9 +229,38 @@ document.querySelectorAll(".choice-btn").forEach(btn => {
         selectedCity = e.target.getAttribute("data-city");
         choicesContainer.style.display = "none";
         storyOverlay.style.display = "none";
-        showHighway = true;
+        showHighway = true; 
+        
+        setTimeout(() => {
+            showHighway = false;
+            gameEnded = false;
+            car.x = 100; car.y = 260;
+            player.x = car.x + 60; player.y = car.y + 60;
+            player.targetX = player.x; player.targetY = player.y;
+            player.inCar = true;
+            cameraX = 0;
+
+            if (selectedCity === "EVERGLADES") {
+                background.src = evergladesBg;
+            } else if (selectedCity === "KENNEDY SPACE CENTER") {
+                background.src = kennedyBg;
+            }
+        }, 5000); 
     };
 });
+
+function handleKennedyGameOver() {
+    gameEnded = true;
+    wrongRoadMsg.innerText = "I think I took the wrong road.......";
+    gameOverOverlay.style.display = "flex";
+    
+    setTimeout(() => {
+        gameOverText.style.display = "block";
+        setTimeout(() => {
+            location.reload(); 
+        }, 5000);
+    }, 5000);
+}
 
 function update() {
     if (showHighway || gameEnded) return;
@@ -246,7 +290,12 @@ function update() {
     }
 
     cameraX += (player.x - 400 - cameraX) * 0.1;
-    if (player.x / 20 >= 1000) triggerEnding();
+    
+    if (player.x / 20 >= 1000 && selectedCity === "") triggerEnding();
+
+    if (selectedCity === "KENNEDY SPACE CENTER" && car.x > 800) {
+        handleKennedyGameOver();
+    }
 }
 
 function draw() {
@@ -254,7 +303,7 @@ function draw() {
 
     if (showHighway) {
         ctx.drawImage(highwayImg, 0, 0, 800, 450);
-        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
         ctx.fillRect(0, 180, 800, 90);
         ctx.fillStyle = "white";
         ctx.font = "bold 24px 'Courier New'";
@@ -265,13 +314,23 @@ function draw() {
 
     ctx.save();
     ctx.translate(-cameraX, 0);
-    for (let i = -1; i <= 30; i++) {
-        ctx.drawImage(background, i * 800, 0, 800, 450);
+
+    if (selectedCity === "KENNEDY SPACE CENTER") {
+        ctx.drawImage(background, 0, 0, 800, 450);
+    } else {
+        for (let i = -1; i <= 30; i++) {
+            ctx.drawImage(background, i * 800, 0, 800, 450);
+        }
     }
-    for (let j = 1; j <= 20; j++) {
-        ctx.drawImage(bushImg, j * 1000, 250, 120, 120);
+    
+    if (selectedCity === "") {
+        for (let j = 1; j <= 20; j++) {
+            ctx.drawImage(bushImg, j * 1000, 250, 120, 120);
+        }
     }
+
     ctx.drawImage(carImg, car.x, car.y, car.width, car.height);
+    
     if (!player.inCar) {
         ctx.drawImage(player.moving ? playerWalk : playerIdle, player.x - 16, player.y - 16, 32, 32);
     }
