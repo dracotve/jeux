@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Jeu Pixel Art - L'Énigme</title>
+    <title>Pixel Art Game - The Riddle</title>
     <style>
         body {
             margin: 0;
@@ -103,12 +103,12 @@
 <div id="credits-overlay" class="overlay">
     <h1>CREDITS</h1>
     <p>GUERIN Alexis<br>JEAND'HEUR Liam<br>BEUGRE - - MARBOUA Hinno-Jhunior<br>GALLOIS Nolan</p>
-    <button id="close-credits" class="btn">RETOUR</button>
+    <button id="close-credits" class="btn">BACK</button>
 </div>
 
 <div id="story-overlay" class="overlay">
     <p id="story-text"></p>
-    <button id="start-game-button" class="btn">COMMENCER L'AVENTURE</button>
+    <button id="start-game-button" class="btn">START ADVENTURE</button>
     <div id="choices-container">
         <button class="btn choice-btn" data-city="EVERGLADES">EVERGLADES</button>
         <button class="btn choice-btn" data-city="KENNEDY SPACE CENTER">KENNEDY SPACE CENTER</button>
@@ -116,7 +116,7 @@
     </div>
 </div>
 
-<button id="cheat-btn" class="btn">TRICHER : +1000 MILES</button>
+<button id="cheat-btn" class="btn">CHEAT: +1000 MILES</button>
 
 <canvas id="game" width="800" height="450"></canvas>
 
@@ -136,7 +136,7 @@ const carImg = new Image(); carImg.src = "https://i.imgur.com/y7EmwQ0.png";
 const bushImg = new Image(); bushImg.src = "https://i.imgur.com/krm21gr.png";
 const highwayImg = new Image(); highwayImg.src = "https://i.imgur.com/5Xn347S.png";
 
-// === ETAT DU JEU ===
+// === GAME STATE ===
 let player = { x: 150, y: 370, targetX: 150, targetY: 370, speed: 2.5, moving: false, inCar: false };
 let car = { x: 500, y: 260, width: 124, height: 134, speed: 6 };
 let cameraX = 0;
@@ -144,7 +144,7 @@ let gameEnded = false;
 let showHighway = false;
 let selectedCity = "";
 
-// --- LOGIQUE MENUS ---
+// --- MENU LOGIC ---
 document.getElementById("play-button").onclick = () => {
     document.getElementById("main-menu").style.display = "none";
     storyOverlay.style.display = "flex";
@@ -229,17 +229,13 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (showHighway) {
-        // Dessin de l'image de l'autoroute
         ctx.drawImage(highwayImg, 0, 0, 800, 450);
-        
-        // Texte par-dessus
         ctx.fillStyle = "rgba(0,0,0,0.5)";
         ctx.fillRect(0, 180, 800, 90);
-        
         ctx.fillStyle = "white";
         ctx.font = "bold 24px 'Courier New'";
         ctx.textAlign = "center";
-        ctx.fillText("EN ROUTE VERS " + selectedCity + "...", 400, 230);
+        ctx.fillText("ON THE WAY TO " + selectedCity + "...", 400, 230);
         return;
     }
 
@@ -260,7 +256,7 @@ function draw() {
     ctx.textAlign = "left";
     ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(10, 10, 200, 30);
     ctx.fillStyle = "white"; ctx.font = "14px Arial";
-    ctx.fillText(`Distance : ${Math.floor(player.x / 20)} miles`, 20, 30);
+    ctx.fillText(`Distance: ${Math.floor(player.x / 20)} miles`, 20, 30);
 }
 
 function gameLoop() {
