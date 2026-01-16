@@ -19,11 +19,9 @@
         canvas {
             border: 2px solid white;
             image-rendering: pixelated;
-            cursor: crosshair;
             display: none;
         }
 
-        /* Overlays (Intro, Fin, Crédits) */
         .overlay {
             position: absolute;
             top: 0;
@@ -43,12 +41,11 @@
 
         #story-text {
             line-height: 1.6;
-            max-width: 600px;
+            max-width: 700px;
             white-space: pre-line;
             font-size: 1.2em;
         }
 
-        /* Menu principal */
         #main-menu {
             position: absolute;
             top: 0;
@@ -65,21 +62,6 @@
             box-sizing: border-box;
         }
 
-        #game-title {
-            font-size: 3.5em;
-            font-weight: bold;
-            text-shadow: 3px 3px 10px rgba(0, 0, 0, 1);
-            margin-top: 20px;
-        }
-
-        .menu-footer {
-            width: 100%;
-            display: flex;
-            justify-content: flex-end;
-            gap: 20px;
-        }
-
-        /* Boutons */
         .btn {
             background: rgba(0, 0, 0, 0.6);
             color: white;
@@ -87,39 +69,32 @@
             padding: 15px 30px;
             cursor: pointer;
             font-family: 'Courier New', Courier, monospace;
-            font-size: 1.2em;
-            transition: all 0.3s ease;
+            font-size: 1.1em;
+            transition: 0.3s;
+            margin: 10px;
         }
 
-        .btn:hover {
-            background: white;
-            color: black;
-            transform: scale(1.1);
-        }
+        .btn:hover { background: white; color: black; }
 
-        .fade-in {
-            animation: fadeIn 2s;
-        }
+        #choices-container { display: none; margin-top: 20px; gap: 10px; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .credits-list {
-            list-style: none;
-            padding: 0;
-            font-size: 1.4em;
-            line-height: 1.8;
-            margin-bottom: 30px;
+        #cheat-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: none;
+            padding: 10px;
+            font-size: 0.8em;
+            z-index: 40;
+            background: rgba(255, 0, 0, 0.5);
         }
     </style>
 </head>
 <body>
 
 <div id="main-menu">
-    <h1 id="game-title" class="fade-in">THE CAR CAN CHANGE YOUR LIFE</h1>
-    <div class="menu-footer">
+    <h1 style="font-size: 3.5em; text-shadow: 3px 3px 10px black;">THE CAR CAN CHANGE YOUR LIFE</h1>
+    <div style="display: flex; gap: 20px; align-self: flex-end;">
         <button id="credits-btn" class="btn">CREDITS</button>
         <button id="play-button" class="btn">PLAY</button>
     </div>
@@ -127,55 +102,52 @@
 
 <div id="credits-overlay" class="overlay">
     <h1>CREDITS</h1>
-    <ul class="credits-list">
-        <li>GUERIN Alexis</li>
-        <li>JEAND'HEUR Liam</li>
-        <li>BEUGRE - - MARBOUA Hinno-Jhunior</li>
-        <li>GALLOIS Nolan</li>
-    </ul>
+    <p>GUERIN Alexis<br>JEAND'HEUR Liam<br>BEUGRE - - MARBOUA Hinno-Jhunior<br>GALLOIS Nolan</p>
     <button id="close-credits" class="btn">RETOUR</button>
 </div>
 
 <div id="story-overlay" class="overlay">
     <p id="story-text"></p>
     <button id="start-game-button" class="btn">COMMENCER L'AVENTURE</button>
+    <div id="choices-container">
+        <button class="btn choice-btn" data-city="EVERGLADES">EVERGLADES</button>
+        <button class="btn choice-btn" data-city="KENNEDY SPACE CENTER">KENNEDY SPACE CENTER</button>
+        <button class="btn choice-btn" data-city="JACKSONVILLE">JACKSONVILLE</button>
+    </div>
 </div>
+
+<button id="cheat-btn" class="btn">TRICHER : +1000 MILES</button>
 
 <canvas id="game" width="800" height="450"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-const mainMenu = document.getElementById("main-menu");
 const storyOverlay = document.getElementById("story-overlay");
-const creditsOverlay = document.getElementById("credits-overlay");
 const storyText = document.getElementById("story-text");
+const choicesContainer = document.getElementById("choices-container");
+const cheatBtn = document.getElementById("cheat-btn");
 
-// === CONFIGURATION ===
-const limiteHaut = 305; 
-const limiteBas = 370;
-let cameraX = 0;
-const DISTANCE_ARBRE = 1000; 
-let gameEnded = false;
-let introActive = false;
-
-// === IMAGES ===
+// === ASSETS ===
 const background = new Image(); background.src = "https://i.imgur.com/1iPHzZk.png";
 const playerIdle = new Image(); playerIdle.src = "https://i.imgur.com/SvsfsiA.png";
 const playerWalk = new Image(); playerWalk.src = "https://i.imgur.com/0eb0KYR.png";
 const carImg = new Image(); carImg.src = "https://i.imgur.com/y7EmwQ0.png";
-const propImg = new Image(); propImg.src = "https://i.imgur.com/V30Jbyq.png";
 const bushImg = new Image(); bushImg.src = "https://i.imgur.com/krm21gr.png";
+const highwayImg = new Image(); highwayImg.src = "https://i.imgur.com/5Xn347S.png";
 
+// === ETAT DU JEU ===
 let player = { x: 150, y: 370, targetX: 150, targetY: 370, speed: 2.5, moving: false, inCar: false };
 let car = { x: 500, y: 260, width: 124, height: 134, speed: 6 };
+let cameraX = 0;
+let gameEnded = false;
+let showHighway = false;
+let selectedCity = "";
 
-// --- GESTION DES MENUS ---
-
-document.getElementById("play-button").addEventListener("click", () => {
-    mainMenu.style.display = "none";
+// --- LOGIQUE MENUS ---
+document.getElementById("play-button").onclick = () => {
+    document.getElementById("main-menu").style.display = "none";
     storyOverlay.style.display = "flex";
-    introActive = true;
     storyText.innerText = `Your father organized a treasure hunt
 for you with a big surprise. For this, 
 he gave you a simple rule: you have
@@ -185,153 +157,128 @@ once 1 mile from your starting
 point. You will soon know where you
 have to start because a red car
 is waiting for you.`;
-});
+};
 
-document.getElementById("credits-btn").addEventListener("click", () => {
-    creditsOverlay.style.display = "flex";
-});
-
-document.getElementById("close-credits").addEventListener("click", () => {
-    creditsOverlay.style.display = "none";
-});
-
-document.getElementById("start-game-button").addEventListener("click", () => {
+document.getElementById("start-game-button").onclick = () => {
     storyOverlay.style.display = "none";
     canvas.style.display = "block";
-    introActive = false;
+    cheatBtn.style.display = "block";
     gameLoop();
-});
+};
 
-// === LOGIQUE DU JEU ===
+cheatBtn.onclick = () => { player.x = 20005; };
 
 function triggerEnding() {
     gameEnded = true;
-    canvas.style.display = "none";
+    cheatBtn.style.display = "none";
     storyOverlay.style.display = "flex";
     document.getElementById("start-game-button").style.display = "none";
-
     storyText.innerText = "You open the glove box and find a paper and you decide to read it.......";
     
     setTimeout(() => {
-        storyText.style.opacity = 0;
-        setTimeout(() => {
-            storyText.innerText = "Look like water attraction, you can see trees on this place, this place is more bigger than Boca Grande.\n\nThere is a beautiful view when you are in the water attraction. You can see animals like bird and fishes. On the water they are waterlillies.\n\nCan you find me? Where I am ?";
-            storyText.style.opacity = 1;
-        }, 1000);
-    }, 5000);
+        storyText.innerText = `Look like water attraction, you can see trees on this place, this place is more bigger than Boca Grande.
+
+There is a beautiful view when you are in the water attraction. You can see animals like bird and fishes. On the water they are waterlillies.
+
+Can you find me? Where I am ?`;
+        choicesContainer.style.display = "flex";
+    }, 3000);
 }
 
-canvas.addEventListener("click", (e) => {
-    if (gameEnded || introActive) return;
-    const rect = canvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left + cameraX;
-    let clickY = e.clientY - rect.top;
-
-    if (clickY < limiteHaut) clickY = limiteHaut;
-    if (clickY > limiteBas) clickY = limiteBas;
-
-    const clickedOnCar = (clickX > car.x && clickX < car.x + car.width && clickY > car.y && clickY < car.y + car.height);
-
-    if (clickedOnCar) {
-        if (!player.inCar) {
-            player.targetX = car.x + car.width / 2;
-            player.targetY = car.y + car.height / 2;
-            player.moving = true;
-        } else {
-            player.inCar = false;
-            player.x = car.x - 40; player.y = limiteBas;
-            player.targetX = player.x; player.targetY = player.y;
-        }
-    } else {
-        player.targetX = clickX; player.targetY = clickY;
-        player.moving = true;
-    }
+document.querySelectorAll(".choice-btn").forEach(btn => {
+    btn.onclick = (e) => {
+        selectedCity = e.target.getAttribute("data-city");
+        choicesContainer.style.display = "none";
+        storyOverlay.style.display = "none";
+        showHighway = true;
+    };
 });
 
 function update() {
-    if (gameEnded || introActive) return;
+    if (showHighway || gameEnded) return;
 
     if (!player.inCar) {
-        const dx = player.targetX - player.x;
-        const dy = player.targetY - player.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
+        let dx = player.targetX - player.x;
+        let dy = player.targetY - player.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
         if (dist > 2) {
             player.x += (dx/dist) * player.speed;
             player.y += (dy/dist) * player.speed;
             player.moving = true;
         } else {
             player.moving = false;
-            if (Math.abs(player.x - (car.x + car.width/2)) < 15) player.inCar = true;
+            if (Math.abs(player.x - (car.x + 60)) < 30) player.inCar = true;
         }
     } else {
-        const tx = player.targetX - car.width/2;
-        const ty = player.targetY - car.height/2;
-        const dx = tx - car.x;
-        const dy = ty - car.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
+        let dx = (player.targetX - 60) - car.x;
+        let dy = (player.targetY - 60) - car.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
         if (dist > 5) {
             car.x += (dx/dist) * car.speed;
             car.y += (dy/dist) * car.speed;
         }
-        player.x = car.x + car.width/2;
-        player.y = car.y + car.height / 2;
+        player.x = car.x + 60;
+        player.y = car.y + 60;
     }
 
-    let targetCamX = player.x - 400;
-    cameraX += (targetCamX - cameraX) * 0.1;
-
-    if (player.x / 20 >= 1000) {
-        triggerEnding();
-    }
+    cameraX += (player.x - 400 - cameraX) * 0.1;
+    if (player.x / 20 >= 1000) triggerEnding();
 }
 
 function draw() {
-    if (introActive || gameEnded) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (showHighway) {
+        // Dessin de l'image de l'autoroute
+        ctx.drawImage(highwayImg, 0, 0, 800, 450);
+        
+        // Texte par-dessus
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillRect(0, 180, 800, 90);
+        
+        ctx.fillStyle = "white";
+        ctx.font = "bold 24px 'Courier New'";
+        ctx.textAlign = "center";
+        ctx.fillText("EN ROUTE VERS " + selectedCity + "...", 400, 230);
+        return;
+    }
+
     ctx.save();
     ctx.translate(-cameraX, 0);
-
-    const bgWidth = canvas.width; 
-    let startBG = Math.floor(cameraX / bgWidth) * bgWidth;
-    for (let i = -1; i <= 2; i++) {
-        ctx.drawImage(background, startBG + (i * bgWidth), 0, bgWidth, canvas.height);
+    for (let i = -1; i <= 30; i++) {
+        ctx.drawImage(background, i * 800, 0, 800, 450);
     }
-
-    ctx.drawImage(propImg, 430, 242, 64, 128); 
-
-    let premierVisible = Math.floor((cameraX - 200) / DISTANCE_ARBRE);
-    let dernierVisible = Math.ceil((cameraX + 1000) / DISTANCE_ARBRE);
-    for (let j = premierVisible; j <= dernierVisible; j++) {
-        let treeX = j * DISTANCE_ARBRE;
-        if (treeX !== 0) ctx.drawImage(bushImg, treeX, 250, 120, 120);
+    for (let j = 1; j <= 20; j++) {
+        ctx.drawImage(bushImg, j * 1000, 250, 120, 120);
     }
-
     ctx.drawImage(carImg, car.x, car.y, car.width, car.height);
-
     if (!player.inCar) {
-        const img = player.moving ? playerWalk : playerIdle;
-        ctx.drawImage(img, player.x - 16, player.y - 16, 32, 32);
+        ctx.drawImage(player.moving ? playerWalk : playerIdle, player.x - 16, player.y - 16, 32, 32);
     }
-
     ctx.restore();
 
-    // UI - Miles
-    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-    ctx.fillRect(10, 10, 200, 30);
-    ctx.fillStyle = "white";
-    ctx.font = "bold 14px Arial";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(10, 10, 200, 30);
+    ctx.fillStyle = "white"; ctx.font = "14px Arial";
     ctx.fillText(`Distance : ${Math.floor(player.x / 20)} miles`, 20, 30);
 }
 
 function gameLoop() {
-    if (!introActive && !gameEnded) {
-        update();
-        draw();
-    }
+    update();
+    draw();
     requestAnimationFrame(gameLoop);
 }
 
-background.onload = () => requestAnimationFrame(gameLoop);
+canvas.addEventListener("click", (e) => {
+    if (gameEnded || showHighway) return;
+    const rect = canvas.getBoundingClientRect();
+    player.targetX = e.clientX - rect.left + cameraX;
+    let y = e.clientY - rect.top;
+    player.targetY = Math.max(305, Math.min(370, y));
+});
+
+document.getElementById("credits-btn").onclick = () => document.getElementById("credits-overlay").style.display = "flex";
+document.getElementById("close-credits").onclick = () => document.getElementById("credits-overlay").style.display = "none";
 </script>
 </body>
 </html>
