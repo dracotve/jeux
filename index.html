@@ -51,7 +51,7 @@
             border: 2px solid white;
         }
 
-        #story-text {
+        #story-text, #space-riddle-text {
             line-height: 1.6;
             max-width: 700px;
             white-space: pre-line;
@@ -95,17 +95,25 @@
 
         .btn:hover { background: white; color: black; }
 
-        #choices-container { display: none; margin-top: 20px; gap: 10px; }
+        #choices-container, #space-choices { display: none; margin-top: 20px; gap: 10px; }
 
-        #cheat-btn {
+        #admin-tools {
             position: absolute;
             top: 10px;
             right: 10px;
             display: none;
-            padding: 10px;
-            font-size: 0.8em;
             z-index: 40;
+            flex-direction: column;
+        }
+        
+        .admin-btn {
+            padding: 8px;
+            font-size: 0.7em;
+            margin-bottom: 5px;
             background: rgba(255, 0, 0, 0.5);
+            border: 1px solid white;
+            color: white;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -120,7 +128,7 @@
 </div>
 
 <div id="loading-overlay" class="overlay">
-    <div class="loader-text">LOADING IN PROGRESS...</div>
+    <div class="loader-text" id="loader-msg">LOADING IN PROGRESS...</div>
 </div>
 
 <div id="credits-overlay" class="overlay">
@@ -139,12 +147,24 @@
     </div>
 </div>
 
+<div id="space-riddle-overlay" class="overlay" style="background: black; z-index: 50;">
+    <p id="space-riddle-text"></p>
+    <div id="space-choices">
+        <button class="btn space-choice-btn" data-answer="JACKSONVILLE">JACKSONVILLE</button>
+        <button class="btn space-choice-btn" data-answer="MIAMI">MIAMI</button>
+        <button class="btn space-choice-btn" data-answer="TAMPA">TAMPA</button>
+    </div>
+</div>
+
 <div id="game-over-overlay" class="overlay" style="background: black;">
     <p id="wrong-road-msg" style="font-size: 1.5em; color: white;"></p>
     <h2 id="game-over-text">GAME OVER</h2>
 </div>
 
-<button id="cheat-btn" class="btn">CHEAT: +1000 MILES</button>
+<div id="admin-tools">
+    <button id="cheat-btn" class="admin-btn">CHEAT: +1000 MILES</button>
+    <button id="skip-to-riddle" class="admin-btn">SKIP TO RIDDLE</button>
+</div>
 
 <canvas id="game" width="800" height="450"></canvas>
 
@@ -153,73 +173,76 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const mainMenu = document.getElementById("main-menu");
 const loadingOverlay = document.getElementById("loading-overlay");
+const loaderMsg = document.getElementById("loader-msg");
 const storyOverlay = document.getElementById("story-overlay");
 const storyText = document.getElementById("story-text");
 const choicesContainer = document.getElementById("choices-container");
-const cheatBtn = document.getElementById("cheat-btn");
+const adminTools = document.getElementById("admin-tools");
 const gameOverOverlay = document.getElementById("game-over-overlay");
 const gameOverText = document.getElementById("game-over-text");
 const wrongRoadMsg = document.getElementById("wrong-road-msg");
+const spaceOverlay = document.getElementById("space-riddle-overlay");
+const spaceText = document.getElementById("space-riddle-text");
+const spaceChoices = document.getElementById("space-choices");
 
 // === ASSETS ===
 const background = new Image(); background.src = "https://i.imgur.com/1iPHzZk.png";
 const evergladesBg = "https://i.imgur.com/lmv1lGB.png"; 
 const kennedyBg = "https://i.imgur.com/jXkox1h.png"; 
 const jacksonvilleBg = "https://i.imgur.com/WJNGXmW.png";
+const tampaBg = "https://i.imgur.com/TQoi5jU.png";
+const miamiBg = "https://i.imgur.com/1iPHzZk.png";
 const playerIdle = new Image(); playerIdle.src = "https://i.imgur.com/SvsfsiA.png";
 const playerWalk = new Image(); playerWalk.src = "https://i.imgur.com/0eb0KYR.png";
 const carImg = new Image(); carImg.src = "https://i.imgur.com/y7EmwQ0.png";
 const bushImg = new Image(); bushImg.src = "https://i.imgur.com/krm21gr.png";
-const highwayImg = new Image(); highwayImg.src = "https://i.imgur.com/5Xn347S.png";
 
 // === GAME STATE ===
 let player = { x: 150, y: 370, targetX: 150, targetY: 370, speed: 2.5, moving: false, inCar: false };
 let car = { x: 500, y: 260, width: 124, height: 134, speed: 6 };
 let cameraX = 0;
 let gameEnded = false;
-let showHighway = false;
+let isLoading = false;
 let selectedCity = "";
 
 // --- LOGIQUE BOUTONS ---
 document.getElementById("play-button").onclick = () => {
     mainMenu.style.display = "none";
+    loaderMsg.innerText = "LOADING IN PROGRESS...";
     loadingOverlay.style.display = "flex";
     setTimeout(() => {
         loadingOverlay.style.display = "none";
         storyOverlay.style.display = "flex";
-        storyText.innerText = `Your father organized a treasure hunt
-for you with a big surprise. For this, 
-he gave you a simple rule: you have
-a paper in your mailbox, you read it
-
-once 1000 mile from your starting
-point. You will soon know where you
-have to start because a red car
-is waiting for you.`;
+        storyText.innerText = `Your father organized a treasure hunt for you with a big surprise. For this, he gave you a simple rule: you have a paper in your mailbox, you read it once 1000 mile from your starting point. You will soon know where you have to start because a red car is waiting for you.`;
     }, 5000);
 };
 
 document.getElementById("start-game-button").onclick = () => {
     storyOverlay.style.display = "none";
     canvas.style.display = "block";
-    cheatBtn.style.display = "block";
+    adminTools.style.display = "flex";
     gameLoop();
 };
 
-cheatBtn.onclick = () => { player.x = 20005; };
+document.getElementById("cheat-btn").onclick = () => { 
+    player.x += 20005; 
+    player.targetX = player.x; 
+};
+
+document.getElementById("skip-to-riddle").onclick = () => {
+    selectedCity = "EVERGLADES";
+    player.x = 20005;
+    player.targetX = 20005;
+};
 
 function triggerEnding() {
     gameEnded = true;
-    cheatBtn.style.display = "none";
+    adminTools.style.display = "none";
     storyOverlay.style.display = "flex";
     document.getElementById("start-game-button").style.display = "none";
     storyText.innerText = "You open the glove box and find a paper and you decide to read it.......";
     setTimeout(() => {
-        storyText.innerText = `Look like water attraction, you can see trees on this place, this place is more bigger than Boca Grande.
-
-There is a beautiful view when you are in the water attraction. You can see animals like bird and fishes. On the water they are waterlillies.
-
-Can you find me? Where I am ?`;
+        storyText.innerText = `Look like water attraction, you can see trees on this place, this place is more bigger than Boca Grande. There is a beautiful view when you are in the water attraction. You can see animals like bird and fishes. On the water they are waterlillies. Can you find me? Where I am ?`;
         choicesContainer.style.display = "flex";
     }, 3000);
 }
@@ -229,10 +252,15 @@ document.querySelectorAll(".choice-btn").forEach(btn => {
         selectedCity = e.target.getAttribute("data-city");
         choicesContainer.style.display = "none";
         storyOverlay.style.display = "none";
-        showHighway = true; 
+        
+        // ANCIEN CHARGEMENT
+        loaderMsg.innerText = "ON THE WAY TO " + selectedCity + "...";
+        loadingOverlay.style.display = "flex";
+        isLoading = true;
         
         setTimeout(() => {
-            showHighway = false;
+            loadingOverlay.style.display = "none";
+            isLoading = false;
             gameEnded = false;
             car.x = 100; car.y = 260;
             player.x = car.x + 60; player.y = car.y + 60;
@@ -240,14 +268,43 @@ document.querySelectorAll(".choice-btn").forEach(btn => {
             player.inCar = true;
             cameraX = 0;
 
-            if (selectedCity === "EVERGLADES") {
-                background.src = evergladesBg;
-            } else if (selectedCity === "KENNEDY SPACE CENTER") {
-                background.src = kennedyBg;
-            } else if (selectedCity === "JACKSONVILLE") {
-                background.src = jacksonvilleBg;
-            }
+            if (selectedCity === "EVERGLADES") background.src = evergladesBg;
+            else if (selectedCity === "KENNEDY SPACE CENTER") background.src = kennedyBg;
+            else if (selectedCity === "JACKSONVILLE") background.src = jacksonvilleBg;
+            
+            adminTools.style.display = "flex";
         }, 5000); 
+    };
+});
+
+document.querySelectorAll(".space-choice-btn").forEach(btn => {
+    btn.onclick = (e) => {
+        const choice = e.target.getAttribute("data-answer");
+        spaceOverlay.style.display = "none";
+        
+        // ANCIEN CHARGEMENT
+        loaderMsg.innerText = "ON THE WAY TO " + choice + "...";
+        loadingOverlay.style.display = "flex";
+        isLoading = true;
+
+        setTimeout(() => {
+            loadingOverlay.style.display = "none";
+            isLoading = false;
+            gameEnded = false;
+            player.x = 100; player.targetX = 100; cameraX = 0;
+            car.x = 50; car.y = 260;
+
+            if (choice === "MIAMI") {
+                selectedCity = "MIAMI";
+                background.src = miamiBg;
+            } else if (choice === "JACKSONVILLE") {
+                selectedCity = "JACKSONVILLE";
+                background.src = jacksonvilleBg;
+            } else if (choice === "TAMPA") {
+                selectedCity = "TAMPA";
+                background.src = tampaBg;
+            }
+        }, 5000);
     };
 });
 
@@ -255,17 +312,14 @@ function handleGameOver(msg) {
     gameEnded = true;
     wrongRoadMsg.innerText = msg;
     gameOverOverlay.style.display = "flex";
-    
     setTimeout(() => {
         gameOverText.style.display = "block";
-        setTimeout(() => {
-            location.reload(); 
-        }, 5000);
+        setTimeout(() => { location.reload(); }, 5000);
     }, 5000);
 }
 
 function update() {
-    if (showHighway || gameEnded) return;
+    if (isLoading || gameEnded) return;
 
     if (!player.inCar) {
         let dx = player.targetX - player.x;
@@ -287,66 +341,47 @@ function update() {
             car.x += (dx/dist) * car.speed;
             car.y += (dy/dist) * car.speed;
         }
-        player.x = car.x + 60;
-        player.y = car.y + 60;
+        player.x = car.x + 60; player.y = car.y + 60;
     }
 
     cameraX += (player.x - 400 - cameraX) * 0.1;
-    
     let currentMiles = Math.floor(player.x / 20);
 
-    // Condition Jacksonville : Game Over à 40 miles
+    if (selectedCity === "" && currentMiles >= 1000) triggerEnding();
+
+    if (selectedCity === "EVERGLADES" && currentMiles >= 1000) {
+        gameEnded = true;
+        spaceOverlay.style.display = "flex";
+        spaceText.innerText = `You need to go on the most popular museum based on the space history. This place is popular like Disneyland.\n\nOnce the protagonist came here with his dad when he was a kid in this space station. He saw his dad hiding a broken map in a strange box.\n\nCan you find it ?`;
+        spaceChoices.style.display = "flex";
+    }
+
     if (selectedCity === "JACKSONVILLE" && currentMiles >= 40) {
         handleGameOver("This path leads nowhere... Jacksonville doesn't hold the secret.");
     }
 
-    // Condition Kennedy : Game Over à 60 miles
-    if (selectedCity === "KENNEDY SPACE CENTER" && currentMiles >= 60) {
-        handleGameOver("This path leads nowhere... Kennedy Space Center doesn't hold the secret.");
+    if (selectedCity === "TAMPA" && currentMiles >= 40) {
+        handleGameOver("Tampa was a dead end. You are lost.");
     }
-
-    if (currentMiles >= 1000 && selectedCity === "") triggerEnding();
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (showHighway) {
-        ctx.drawImage(highwayImg, 0, 0, 800, 450);
-        ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.fillRect(0, 180, 800, 90);
-        ctx.fillStyle = "white";
-        ctx.font = "bold 24px 'Courier New'";
-        ctx.textAlign = "center";
-        ctx.fillText("ON THE WAY TO " + selectedCity + "...", 400, 230);
-        return;
-    }
+    if (isLoading) return;
 
     ctx.save();
     ctx.translate(-cameraX, 0);
 
-    if (selectedCity === "JACKSONVILLE" || selectedCity === "KENNEDY SPACE CENTER") {
-        let shift = Math.floor(cameraX / 800) * 800;
-        for (let i = 0; i < 3; i++) {
-            ctx.drawImage(background, shift + (i * 800), 0, 800, 450);
-        }
-    } else {
-        for (let i = -1; i <= 30; i++) {
-            ctx.drawImage(background, i * 800, 0, 800, 450);
-        }
+    for (let i = -1; i <= 100; i++) {
+        ctx.drawImage(background, i * 800, 0, 800, 450);
     }
     
     if (selectedCity === "") {
-        for (let j = 1; j <= 20; j++) {
-            ctx.drawImage(bushImg, j * 1000, 250, 120, 120);
-        }
+        for (let j = 1; j <= 20; j++) ctx.drawImage(bushImg, j * 1000, 250, 120, 120);
     }
 
     ctx.drawImage(carImg, car.x, car.y, car.width, car.height);
-    
-    if (!player.inCar) {
-        ctx.drawImage(player.moving ? playerWalk : playerIdle, player.x - 16, player.y - 16, 32, 32);
-    }
+    if (!player.inCar) ctx.drawImage(player.moving ? playerWalk : playerIdle, player.x - 16, player.y - 16, 32, 32);
     ctx.restore();
 
     ctx.textAlign = "left";
@@ -362,7 +397,7 @@ function gameLoop() {
 }
 
 canvas.addEventListener("click", (e) => {
-    if (gameEnded || showHighway) return;
+    if (gameEnded || isLoading) return;
     const rect = canvas.getBoundingClientRect();
     player.targetX = e.clientX - rect.left + cameraX;
     let y = e.clientY - rect.top;
