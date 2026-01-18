@@ -253,7 +253,6 @@ document.querySelectorAll(".choice-btn").forEach(btn => {
         choicesContainer.style.display = "none";
         storyOverlay.style.display = "none";
         
-        // ANCIEN CHARGEMENT
         loaderMsg.innerText = "ON THE WAY TO " + selectedCity + "...";
         loadingOverlay.style.display = "flex";
         isLoading = true;
@@ -282,7 +281,6 @@ document.querySelectorAll(".space-choice-btn").forEach(btn => {
         const choice = e.target.getAttribute("data-answer");
         spaceOverlay.style.display = "none";
         
-        // ANCIEN CHARGEMENT
         loaderMsg.innerText = "ON THE WAY TO " + choice + "...";
         loadingOverlay.style.display = "flex";
         isLoading = true;
@@ -310,12 +308,13 @@ document.querySelectorAll(".space-choice-btn").forEach(btn => {
 
 function handleGameOver(msg) {
     gameEnded = true;
+    adminTools.style.display = "none";
     wrongRoadMsg.innerText = msg;
     gameOverOverlay.style.display = "flex";
     setTimeout(() => {
         gameOverText.style.display = "block";
         setTimeout(() => { location.reload(); }, 5000);
-    }, 5000);
+    }, 3000);
 }
 
 function update() {
@@ -347,6 +346,8 @@ function update() {
     cameraX += (player.x - 400 - cameraX) * 0.1;
     let currentMiles = Math.floor(player.x / 20);
 
+    // --- LOGIQUE DE PROGRESSION ET DÉFAITE ---
+    
     if (selectedCity === "" && currentMiles >= 1000) triggerEnding();
 
     if (selectedCity === "EVERGLADES" && currentMiles >= 1000) {
@@ -356,12 +357,10 @@ function update() {
         spaceChoices.style.display = "flex";
     }
 
-    if (selectedCity === "JACKSONVILLE" && currentMiles >= 40) {
-        handleGameOver("This path leads nowhere... Jacksonville doesn't hold the secret.");
-    }
-
-    if (selectedCity === "TAMPA" && currentMiles >= 40) {
-        handleGameOver("Tampa was a dead end. You are lost.");
+    // GESTION DES MAUVAISES ROUTES (40 MILES)
+    const deadEnds = ["KENNEDY SPACE CENTER", "JACKSONVILLE", "TAMPA", "MIAMI"];
+    if (currentMiles >= 40 && deadEnds.includes(selectedCity)) {
+        handleGameOver("You haven't found any other clues here.");
     }
 }
 
