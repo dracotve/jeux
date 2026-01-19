@@ -133,7 +133,7 @@
 
 <div id="credits-overlay" class="overlay">
     <h1>CREDITS</h1>
-    <p>GUERIN Alexis<br>JEAND'HEUR Liam<br>BEUGRE - - MARBOUA Hinno-Jhunior<br>GALLOIS Nolan</p>
+    <p>GUERIN Alexis<br>JEAND'HEUR Liam<br>BEUGRE Hinno<br>GALLOIS Nolan</p>
     <button id="close-credits" class="btn">BACK</button>
 </div>
 
@@ -151,7 +151,7 @@
     <p id="space-riddle-text"></p>
     <div id="space-choices">
         <button class="btn space-choice-btn" data-answer="JACKSONVILLE">JACKSONVILLE</button>
-        <button class="btn space-choice-btn" data-answer="MIAMI">MIAMI</button>
+        <button class="btn space-choice-btn" data-answer="orlando">MIAMI</button>
         <button class="btn space-choice-btn" data-answer="TAMPA">TAMPA</button>
     </div>
 </div>
@@ -162,7 +162,7 @@
 </div>
 
 <div id="admin-tools">
-    <button id="cheat-btn" class="admin-btn">CHEAT: +1000 MILES</button>
+    <button id="cheat-btn" class="admin-btn">CHEAT: +75 MILES</button>
     <button id="skip-to-riddle" class="admin-btn">SKIP TO RIDDLE</button>
 </div>
 
@@ -213,7 +213,7 @@ document.getElementById("play-button").onclick = () => {
     setTimeout(() => {
         loadingOverlay.style.display = "none";
         storyOverlay.style.display = "flex";
-        storyText.innerText = `Your father organized a treasure hunt for you with a big surprise. For this, he gave you a simple rule: you have a paper in your mailbox, you read it once 1000 mile from your starting point. You will soon know where you have to start because a red car is waiting for you.`;
+        storyText.innerText = `Your father organized a treasure hunt for you with a big surprise. For this, he gave you a simple rule: you have a paper in your mailbox, you read it once 75 miles from your starting point. You will soon know where you have to start because a red car is waiting for you.`;
     }, 5000);
 };
 
@@ -292,8 +292,8 @@ document.querySelectorAll(".space-choice-btn").forEach(btn => {
             player.x = 100; player.targetX = 100; cameraX = 0;
             car.x = 50; car.y = 260;
 
-            if (choice === "MIAMI") {
-                selectedCity = "MIAMI";
+            if (choice === "orlando") {
+                selectedCity = "orlando";
                 background.src = miamiBg;
             } else if (choice === "JACKSONVILLE") {
                 selectedCity = "JACKSONVILLE";
@@ -348,9 +348,9 @@ function update() {
 
     // --- LOGIQUE DE PROGRESSION ET DÉFAITE ---
     
-    if (selectedCity === "" && currentMiles >= 1000) triggerEnding();
+    if (selectedCity === "" && currentMiles >= 75) triggerEnding();
 
-    if (selectedCity === "EVERGLADES" && currentMiles >= 1000) {
+    if (selectedCity === "EVERGLADES" && currentMiles >= 75) {
         gameEnded = true;
         spaceOverlay.style.display = "flex";
         spaceText.innerText = `You need to go on the most popular museum based on the space history. This place is popular like Disneyland.\n\nOnce the protagonist came here with his dad when he was a kid in this space station. He saw his dad hiding a broken map in a strange box.\n\nCan you find it ?`;
@@ -358,7 +358,7 @@ function update() {
     }
 
     // GESTION DES MAUVAISES ROUTES (40 MILES)
-    const deadEnds = ["KENNEDY SPACE CENTER", "JACKSONVILLE", "TAMPA", "MIAMI"];
+    const deadEnds = ["KENNEDY SPACE CENTER", "JACKSONVILLE", "TAMPA", "orlando"];
     if (currentMiles >= 40 && deadEnds.includes(selectedCity)) {
         handleGameOver("You haven't found any other clues here.");
     }
