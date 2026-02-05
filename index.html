@@ -63,6 +63,66 @@
             color: gold;
             font-weight: bold;
             display: none;
+            text-shadow: 0 0 20px gold, 0 0 40px orange, 0 0 60px red;
+            animation: victoryPulse 2s infinite;
+        }
+
+        @keyframes victoryPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes confetti {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: gold;
+            animation: confetti 3s linear infinite;
+        }
+
+        #victory-overlay.show {
+            background: radial-gradient(circle, rgba(255,215,0,0.2) 0%, rgba(0,0,0,0.9) 100%);
+        }
+
+        .firework {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            animation: fireworkExplosion 1s ease-out;
+        }
+
+        @keyframes fireworkExplosion {
+            0% {
+                transform: translate(0, 0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--x), var(--y));
+                opacity: 0;
+            }
         }
         #main-menu {
             position: absolute;
@@ -142,6 +202,7 @@
         <button id="start-game-button" class="btn">START ADVENTURE</button>
         <div id="choices-container">
             <button class="btn choice-btn" data-city="EVERGLADES">EVERGLADES</button>
+            <button class="btn choice-btn" data-city="KENNEDY SPACE CENTER">KENNEDY SPACE CENTER</button>
             <button class="btn choice-btn" data-city="JACKSONVILLE">JACKSONVILLE</button>
         </div>
     </div>
@@ -161,8 +222,10 @@
     </div>
 
     <div id="victory-overlay" class="overlay" style="background: black;">
-        <p id="victory-msg" style="font-size: 1.5em; color: gold;"></p>
+        <p id="victory-msg" style="font-size: 1.5em; color: gold; animation: fadeInUp 1s ease-out;"></p>
         <h2 id="victory-text">VICTORY!</h2>
+        <div id="confetti-container"></div>
+        <div id="fireworks-container"></div>
     </div>
 
     <div id="admin-tools">
@@ -361,9 +424,61 @@
             adminTools.style.display = "none";
             victoryMsg.innerText = msg;
             victoryOverlay.style.display = "flex";
+            victoryOverlay.classList.add("show");
+            
+            // Create confetti effect
+            createConfetti();
+            
             setTimeout(() => {
                 victoryText.style.display = "block";
+                // Create fireworks effect
+                createFireworks();
             }, 2000);
+        }
+
+        function createConfetti() {
+            const container = document.getElementById("confetti-container");
+            const colors = ["gold", "orange", "yellow", "red", "lime", "cyan", "magenta"];
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement("div");
+                confetti.className = "confetti";
+                confetti.style.left = Math.random() * 100 + "%";
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 3 + "s";
+                confetti.style.animationDuration = (Math.random() * 2 + 2) + "s";
+                container.appendChild(confetti);
+            }
+        }
+
+        function createFireworks() {
+            const container = document.getElementById("fireworks-container");
+            const colors = ["gold", "orange", "yellow", "red", "lime", "cyan", "magenta", "white"];
+            
+            setInterval(() => {
+                const centerX = Math.random() * window.innerWidth;
+                const centerY = Math.random() * window.innerHeight * 0.6;
+                
+                for (let i = 0; i < 30; i++) {
+                    const firework = document.createElement("div");
+                    firework.className = "firework";
+                    firework.style.left = centerX + "px";
+                    firework.style.top = centerY + "px";
+                    firework.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    const angle = (Math.PI * 2 * i) / 30;
+                    const velocity = 50 + Math.random() * 100;
+                    const x = Math.cos(angle) * velocity;
+                    const y = Math.sin(angle) * velocity;
+                    
+                    firework.style.setProperty('--x', x + 'px');
+                    firework.style.setProperty('--y', y + 'px');
+                    
+                    container.appendChild(firework);
+                    
+                    setTimeout(() => firework.remove(), 1000);
+                }
+            }, 800);
         }
 
         function update() {
